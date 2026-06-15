@@ -1,5 +1,7 @@
 # wg-monitor
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/chabnco)
+
 Discord alerting for [wg-easy](https://github.com/wg-easy/wg-easy) — sends a notification whenever a WireGuard peer connects or disconnects.
 
 Runs every minute via cron on the Docker host. No daemon, no dependencies beyond the Python standard library.
