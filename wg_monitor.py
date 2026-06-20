@@ -157,6 +157,31 @@ def notify(title, body, color):
 
 # ── WireGuard ─────────────────────────────────────────────────────────────────
 
+def fmt_bytes(n):
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024:
+            return f"{n:.1f} {unit}"
+        n /= 1024
+    return f"{n:.1f} PB"
+
+
+def get_transfer_raw():
+    """Returns {pubkey: (rx_bytes, tx_bytes)} from `wg show transfer`."""
+    r = subprocess.run(
+        ["docker", "exec", WG_CONTAINER, "wg", "show", "wg0", "transfer"],
+        capture_output=True, text=True,
+    )
+    result = {}
+    for line in r.stdout.splitlines():
+        parts = line.strip().split("\t")
+        if len(parts) == 3:
+            try:
+                result[parts[0]] = (int(parts[1]), int(parts[2]))
+            except ValueError:
+                pass
+    return result
+
+
 def parse_handshake_age(s):
     if not s or "(none)" in s:
         return None
@@ -222,30 +247,41 @@ def main():
     peers     = get_wg_peers()
     names     = get_peer_names()
     state     = load_state()
+    transfers = get_transfer_raw()
     alerts    = []
     new_state = {}
 
     for pubkey, data in peers.items():
         age           = parse_handshake_age(data.get("latest handshake", ""))
         is_connected  = age is not None and age < HANDSHAKE_TIMEOUT
-        was_connected = state.get(pubkey, {}).get("connected", False)
+        prev          = state.get(pubkey, {})
+        was_connected = prev.get("connected", False)
         name          = names.get(pubkey, f"{pubkey[:12]}…")
         ip            = tunnel_ip(data)
-        transfer      = data.get("transfer", "—")
         handshake     = data.get("latest handshake", "never")
+        rx_now, tx_now = transfers.get(pubkey, (0, 0))
 
         new_state[pubkey] = {"connected": is_connected, "name": name}
 
         if is_connected and not was_connected:
+            new_state[pubkey]["rx_at_connect"] = rx_now
+            new_state[pubkey]["tx_at_connect"] = tx_now
             alerts.append((
                 "🟢 WireGuard Connected",
-                f"**{name}**\n🌐 Tunnel IP: `{ip}`\n📡 Handshake: {handshake}\n📊 Transfer: {transfer}",
+                f"**{name}**\n🌐 Tunnel IP: `{ip}`\n📡 Handshake: {handshake}",
                 0x00CC66,
             ))
+        elif is_connected and was_connected:
+            new_state[pubkey]["rx_at_connect"] = prev.get("rx_at_connect", rx_now)
+            new_state[pubkey]["tx_at_connect"] = prev.get("tx_at_connect", tx_now)
         elif not is_connected and was_connected:
+            rx0      = prev.get("rx_at_connect", rx_now)
+            tx0      = prev.get("tx_at_connect", tx_now)
+            upload   = fmt_bytes(max(0, rx_now - rx0))
+            download = fmt_bytes(max(0, tx_now - tx0))
             alerts.append((
                 "🔴 WireGuard Disconnected",
-                f"**{name}**\n🌐 Tunnel IP: `{ip}`\n⏱️ Last handshake: {handshake}",
+                f"**{name}**\n🌐 Tunnel IP: `{ip}`\n⏱️ Last handshake: {handshake}\n📊 Session: ↑ {upload} / ↓ {download}",
                 0xFF4444,
             ))
 
