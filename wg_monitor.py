@@ -144,8 +144,6 @@ def notify(title, body, color):
     active = [fn for enabled, fn in channels if enabled]
 
     if not active:
-        print("WARNING: no notification channel configured — set at least one of: "
-              "DISCORD_WEBHOOK, SLACK_WEBHOOK, TELEGRAM_TOKEN, NTFY_URL, PUSHOVER_TOKEN, GOTIFY_URL")
         return
 
     for fn in active:
@@ -299,7 +297,7 @@ def main():
     if alerts:
         for title, body, color in alerts:
             notify(title, body, color)
-        print(f"{len(alerts)} alert(s) sent", flush=True)
+        print(f"{len(alerts)} state change(s)", flush=True)
     else:
         print("No state change", flush=True)
 
