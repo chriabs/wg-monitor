@@ -18,8 +18,39 @@ Runs every minute via cron on the Docker host. No daemon, no dependencies beyond
 
 | Event | Color |
 |-------|-------|
-| 🟢 Peer connected | Green — with tunnel IP, handshake time, transfer stats |
-| 🔴 Peer disconnected | Red — with tunnel IP, last handshake time |
+| 🟢 Peer connected | Green — tunnel IP, handshake time |
+| 🔴 Peer disconnected | Red — tunnel IP, last handshake, **session upload/download** |
+
+### Discord example
+
+**Connection:**
+```
+┌─────────────────────────────────────┐
+│ 🟢 WireGuard Connected              │
+│─────────────────────────────────────│
+│ Alice's iPhone                      │
+│ 🌐 Tunnel IP: 10.8.0.2             │
+│ 📡 Handshake: 3 seconds ago        │
+│                                     │
+│ WireGuard · 20/06/2026 18:00 UTC   │
+└─────────────────────────────────────┘
+```
+
+**Disconnection:**
+```
+┌─────────────────────────────────────┐
+│ 🔴 WireGuard Disconnected           │
+│─────────────────────────────────────│
+│ Alice's iPhone                      │
+│ 🌐 Tunnel IP: 10.8.0.2             │
+│ ⏱️ Last handshake: 5 minutes ago   │
+│ 📊 Session: ↑ 24.3 MB / ↓ 1.2 GB  │
+│                                     │
+│ WireGuard · 20/06/2026 19:45 UTC   │
+└─────────────────────────────────────┘
+```
+
+Upload (↑) = client → server. Download (↓) = server → client.
 
 ## Requirements
 
